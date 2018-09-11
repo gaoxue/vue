@@ -1,5 +1,5 @@
 /* @flow */
-
+/* 这里关键的代码是 import Vue from 'core/index'，之后的逻辑都是对 Vue 这个对象做一些扩展，可以先不用看，我们来看一下真正初始化 Vue 的地方，在 src/core/index.js */
 import Vue from 'core/index'
 import config from 'core/config'
 import { extend, noop } from 'shared/util'

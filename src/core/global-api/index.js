@@ -1,5 +1,6 @@
 /* @flow */
-
+// 这里就是在 Vue 上扩展的一些全局方法的定义，Vue 官网中关于全局 API 都可以在这里找到
+// Vue.util 暴露的方法最好不要依赖，因为它可能经常会发生变化，是不稳定的
 import config from '../config'
 import { initUse } from './use'
 import { initMixin } from './mixin'

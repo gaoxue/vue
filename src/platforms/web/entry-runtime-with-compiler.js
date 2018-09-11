@@ -1,9 +1,9 @@
 /* @flow */
-
+/* 当我们的代码执行 import Vue from 'vue' 的时候，就是从这个入口执行代码来初始化 Vue */
 import config from 'core/config'
 import { warn, cached } from 'core/util/index'
 import { mark, measure } from 'core/util/perf'
-
+// Vue来源, 打开./runtime/index来看一下
 import Vue from './runtime/index'
 import { query } from './util/index'
 import { compileToFunctions } from './compiler/index'

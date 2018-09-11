@@ -1,4 +1,6 @@
 /* @flow */
+/* 至此我们总算找到了 compileToFunctions 的最终定义，它接收 3 个参数、编译模板 template，编译配置 options 和 Vue 实例 vm。核心的编译过程就一行代码：
+ const compiled = compile(template, options) */
 
 import { noop, extend } from 'shared/util'
 import { warn as baseWarn, tip } from 'core/util/debug'
@@ -56,6 +58,11 @@ export function createCompileToFunctionFn (compile: Function): Function {
     }
 
     // compile
+    // 调用解析
+    /* compile 函数在执行 createCompileToFunctionFn 的时候作为参数传入，它是 createCompiler 函数中定义的 compile 函数 打开./create-compiler查看。
+    * compile 函数执行的逻辑是先处理配置参数，真正执行编译过程就一行代码：
+     const compiled = baseCompile(template, finalOptions)
+     */
     const compiled = compile(template, options)
 
     // check compilation errors/tips
