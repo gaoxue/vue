@@ -117,7 +117,16 @@ export function parse (
    * parseHTML(template, options)
    * 模板的解析主要是通过 parseHTML 函数，它的定义在 src/compiler/parser/html-parser 中
    **/
-  parseHTML(template, {
+  /** 以以下模板为例
+   <div class="wraper m-container-max" id="others">
+     <div class="card" v-if="show">
+       <div class="card-wrap" v-text="title">
+          11111111
+       </div>
+     </div>
+   </div>
+   */
+parseHTML(template, {
     warn,
     expectHTML: options.expectHTML,
     isUnaryTag: options.isUnaryTag,
@@ -131,6 +140,10 @@ export function parse (
     start (tag, attrs, unary) {
       // check namespace.
       // inherit parent ns if there is one
+      /* tag: div  unary:false(非一元标签) attrs:[{"name":"class","value":"wraper m-container-max"},{"name":"id","value":"others"}] */
+      /* tag: div  unary:false(非一元标签) attrs:[{"name":"class","value":"card"},{"name":"v-if","value":"show"}] */
+      /* tag: div  unary:false(非一元标签) attrs:[{"name":"class","value":"card-wrap"},{"name":"v-text","value":"title"}] */
+
       const ns = (currentParent && currentParent.ns) || platformGetTagNamespace(tag)
 
       // handle IE svg bug
@@ -138,12 +151,13 @@ export function parse (
       if (isIE && ns === 'svg') {
         attrs = guardIESVGBug(attrs)
       }
-
+      // 1. 创建 AST 元素
+      // 赋值给element变量(ASTElement类型)
       let element: ASTElement = createASTElement(tag, attrs, currentParent)
       if (ns) {
         element.ns = ns
       }
-
+      // 2. 处理 AST 元素
       if (isForbiddenTag(element) && !isServerRendering()) {
         element.forbidden = true
         process.env.NODE_ENV !== 'production' && warn(
@@ -154,10 +168,18 @@ export function parse (
       }
 
       // apply pre-transforms
+      /* 首先是对模块 preTransforms 的调用，
+         其实所有模块的 preTransforms、 transforms 和 postTransforms 的定义都在
+         src/platforms/web/compiler/modules 目录中
+       */
       for (let i = 0; i < preTransforms.length; i++) {
         element = preTransforms[i](element, options) || element
       }
 
+      /*
+       接着判断 element 是否包含各种指令通过 processXXX 做相应的处理，
+       处理的结果就是扩展 AST 元素的属性
+       */
       if (!inVPre) {
         processPre(element)
         if (element.pre) {
@@ -171,6 +193,7 @@ export function parse (
         processRawAttrs(element)
       } else if (!element.processed) {
         // structural directives
+        // 我们来看一下 processFor 和 processIf 为例
         processFor(element)
         processIf(element)
         processOnce(element)
