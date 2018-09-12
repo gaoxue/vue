@@ -120,9 +120,7 @@ export function parse (
   /** 以以下模板为例
    <div class="wraper m-container-max" id="others">
      <div class="card" v-if="show">
-       <div class="card-wrap" v-text="title">
-          11111111
-       </div>
+        <div class="card-wrap" v-text="item.txt" v-for="item in list"></div>
      </div>
    </div>
    */
@@ -142,7 +140,7 @@ parseHTML(template, {
       // inherit parent ns if there is one
       /* tag: div  unary:false(非一元标签) attrs:[{"name":"class","value":"wraper m-container-max"},{"name":"id","value":"others"}] */
       /* tag: div  unary:false(非一元标签) attrs:[{"name":"class","value":"card"},{"name":"v-if","value":"show"}] */
-      /* tag: div  unary:false(非一元标签) attrs:[{"name":"class","value":"card-wrap"},{"name":"v-text","value":"title"}] */
+      /* tag: div  unary:false(非一元标签) attrs:[{"name":"class","value":"card-wrap"},{"name":"v-text","value":"item.txt"},{"name":"v-for","value":"item in list"}] */
 
       const ns = (currentParent && currentParent.ns) || platformGetTagNamespace(tag)
 
