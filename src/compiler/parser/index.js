@@ -18,8 +18,9 @@ import {
   getAndRemoveAttr,
   pluckModuleFunction
 } from '../helpers'
-
+// @开头或v-on开头的事件指令
 export const onRE = /^@|^v-on:/
+// 所有 v-开头的  @开头的  :开头的
 export const dirRE = /^v-|^@|^:/
 export const forAliasRE = /([^]*?)\s+(?:in|of)\s+([^]*)/
 export const forIteratorRE = /,([^,\}\]]*)(?:,([^,\}\]]*))?$/
@@ -65,8 +66,14 @@ export function parse (
   template: string,
   options: CompilerOptions
 ): ASTElement | void {
+  /*
+   *以下为平台相关配置:
+   * options 实际上是和平台相关的一些配置，它的定义在 src/platforms/web/compiler/options 中
+   * 那些属性和方法之所以放到 platforms 目录下是因为它们在不同的平台（web 和 weex）的实现是不同的
+   *
+   */
+  // start 用伪代码 getFnsAndConfigFromOptions()来表示这部分过程
   warn = options.warn || baseWarn
-
   platformIsPreTag = options.isPreTag || no
   platformMustUseProp = options.mustUseProp || no
   platformGetTagNamespace = options.getTagNamespace || no
@@ -76,7 +83,7 @@ export function parse (
   postTransforms = pluckModuleFunction(options.modules, 'postTransformNode')
 
   delimiters = options.delimiters
-
+  // end
   const stack = []
   const preserveWhitespace = options.preserveWhitespace !== false
   let root
@@ -105,7 +112,11 @@ export function parse (
       postTransforms[i](element, options)
     }
   }
-
+  /**
+   * 模板解析部分:
+   * parseHTML(template, options)
+   * 模板的解析主要是通过 parseHTML 函数，它的定义在 src/compiler/parser/html-parser 中
+   **/
   parseHTML(template, {
     warn,
     expectHTML: options.expectHTML,
@@ -114,6 +125,9 @@ export function parse (
     shouldDecodeNewlines: options.shouldDecodeNewlines,
     shouldDecodeNewlinesForHref: options.shouldDecodeNewlinesForHref,
     shouldKeepComment: options.comments,
+    // 解析html后的start回调
+    // start 回调函数主要就做 3 件事情:
+    // 创建 AST 元素，处理 AST 元素，AST 树管理。下面我们来分别来看这几个过程
     start (tag, attrs, unary) {
       // check namespace.
       // inherit parent ns if there is one
@@ -279,6 +293,7 @@ export function parse (
         }
       }
     },
+
     comment (text: string) {
       currentParent.children.push({
         type: 3,
