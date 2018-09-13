@@ -9135,9 +9135,9 @@ function parse (
     shouldDecodeNewlinesForHref: options.shouldDecodeNewlinesForHref,
     shouldKeepComment: options.comments,
     start: function start (tag, attrs, unary) {
-      console.log(tag);
-      console.log(JSON.stringify(attrs));
-      console.log(unary);
+      // console.log(tag);
+      // console.log(JSON.stringify(attrs));
+      // console.log(unary);
       // check namespace.
       // inherit parent ns if there is one
       var ns = (currentParent && currentParent.ns) || platformGetTagNamespace(tag);
@@ -9147,7 +9147,6 @@ function parse (
       if (isIE && ns === 'svg') {
         attrs = guardIESVGBug(attrs);
       }
-
       var element = createASTElement(tag, attrs, currentParent);
       if (ns) {
         element.ns = ns;

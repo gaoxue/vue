@@ -10,7 +10,7 @@
 <body>
 <div class="wraper m-container-max" id="others">
 <div class="card" v-if="show">
-	<div class="card-wrap" v-text="item.txt" v-for="item in list"></div>
+	<div class="card-wrap" v-text="item.txt" v-for="(item,index) in list"></div>
 </div>
 </div>
 </body>

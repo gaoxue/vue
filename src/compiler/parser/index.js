@@ -197,6 +197,33 @@ parseHTML(template, {
         processOnce(element)
         // element-scope stuff
         processElement(element, options)
+        /*
+         <div class="wraper m-container-max" id="others">
+           <div class="card" v-if="show">
+              <div class="card-wrap" v-text="item.txt" v-for="item in list"></div>
+           </div>
+         </div>
+        console.log(element):
+        {
+         type: 1,
+         tag: "div",
+         attrsList: [{name: "v-text", value: "item.txt"}],
+         attrsMap: {class: "card-wrap", v-text: "item.txt", v-for: "(item,index) in list"},
+         directives: {name: "text", rawName: "v-text", value: "item.txt", arg: null, modifiers: undefined},
+         props: [{name: "textContent", value: "_s(item.txt)"}],
+         for: "list",
+         alias: "item",
+         iterator1: "index",
+         forProcessed: true,
+         hasBindings: true,
+         children: [],
+         parent: {type: 1, tag: "div", attrsList: [], attrsMap: {class: "card", v-if: "show"}, parent: Object, …},
+         plain: false,
+         static: false,
+         staticClass: "\"card-wrap\"",
+         staticRoot: false
+         }
+        */
       }
 
       function checkRootConstraints (el) {
@@ -217,6 +244,22 @@ parseHTML(template, {
       }
 
       // tree management
+      /*
+       我们在处理开始标签的时候为每一个标签创建了一个 AST 元素，
+       在不断解析模板创建 AST 元素的时候，我们也要为它们建立父子关系，就像 DOM 元素的父子关系那样
+       AST 树管理的目标是构建一颗 AST 树，本质上它要维护 root 根节点和当前父节点 currentParent。
+       为了保证元素可以正确闭合，这里也利用了 stack 栈的数据结构，和我们之前解析模板时用到的 stack 类似。
+
+       当我们在处理开始标签的时候，判断如果有 currentParent，
+       会把当前 AST 元素 push 到 currentParent.chilldren 中，
+       同时把 AST 元素的 parent 指向 currentParent。
+
+       接着就是更新 currentParent 和 stack ，判断当前如果不是一个一元标签，
+       我们要把它生成的 AST 元素 push 到 stack 中，并且把当前的 AST 元素赋值给 currentParent。
+
+       stack 和 currentParent 除了在处理开始标签的时候会变化，在处理闭合标签的时候也会变化，
+       因此整个 AST 树管理要结合闭合标签的处理逻辑看。
+       */
       if (!root) {
         root = element
         checkRootConstraints(root)
@@ -383,6 +426,33 @@ function processRef (el) {
 }
 
 export function processFor (el: ASTElement) {
+  /* html
+   <div class="wraper m-container-max" id="others">
+     <div class="card" v-if="show">
+        <div class="card-wrap" v-text="item.txt" v-for="item in list"></div>
+     </div>
+   </div>
+   */
+
+  /* el:
+  {
+    type: 1
+    tag: "div",
+    attrsList: [{name: "class", value: "card-wrap"}, {name: "v-text", value: "item.txt"}, {name: "v-for", value: "item in list"}],
+    attrsMap: {class: "card-wrap", v-text: "item.txt", v-for: "item in list"},
+    parent: {type: 1, tag: "div", attrsList: [], attrsMap: {class: "card", v-if: "show"}},
+    plain: false,
+    props: [{name: "textContent", value: "_s(item.txt)"}],
+    static: false,
+    staticClass: "card-wrap",
+    staticRoot: false
+  }
+
+   processFor 就是从元素中拿到 v-for 指令的内容，
+   然后分别解析出 for、alias、iterator1、iterator2 等属性的值添加到 AST 的元素上。
+   就我们的示例 v-for="(item,index) in data" 而言，
+   解析出的的 for 是 data，alias 是 item，iterator1 是 index，没有 iterator2
+   */
   let exp
   if ((exp = getAndRemoveAttr(el, 'v-for'))) {
     const res = parseFor(exp)
@@ -407,9 +477,20 @@ export function parseFor (exp: string): ?ForParseResult {
   const inMatch = exp.match(forAliasRE)
   if (!inMatch) return
   const res = {}
+  /*
+   console.log(inMatch)
+   ["item in list", "item", "list", index: 0, input: "item in list", groups: undefined]
+   */
   res.for = inMatch[2].trim()
   const alias = inMatch[1].trim().replace(stripParensRE, '')
   const iteratorMatch = alias.match(forIteratorRE)
+  /*
+   假如有iterator:  v-for="(item,index) in list"
+   console.log(iteratorMatch)
+   [",index", "index", undefined, index: 4, input: "item,index", groups: undefined]
+   没有iterator v-for="item in list"
+   console.log(iteratorMatch) 为 null
+   */
   if (iteratorMatch) {
     res.alias = alias.replace(forIteratorRE, '')
     res.iterator1 = iteratorMatch[1].trim()
@@ -421,7 +502,12 @@ export function parseFor (exp: string): ?ForParseResult {
   }
   return res
 }
-
+/*
+ processIf 就是从元素中拿 v-if 指令的内容，
+ 如果拿到则给 AST 元素添加 if 属性和 ifConditions 属性；
+ 否则尝试拿 v-else 指令及 v-else-if 指令的内容，
+ 如果拿到则给 AST 元素分别添加 else 和 elseif 属性
+ */
 function processIf (el) {
   const exp = getAndRemoveAttr(el, 'v-if')
   if (exp) {
