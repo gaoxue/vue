@@ -68,7 +68,7 @@ export function parseHTML (html, options) {
       let lastTag
       while (html) {
         // Make sure we're not in a plaintext content element like script/style
-        // 非最后一个标签 非style或script标签
+        // 非style或script标签
         if (!lastTag || !isPlainTextElement(lastTag)){
           let textEnd = html.indexOf('<')
           if (textEnd === 0) {
@@ -337,7 +337,9 @@ export function parseHTML (html, options) {
   }
   /*
    parseStartTag 对开始标签解析拿到 match 后，紧接着会执行 handleStartTag 对 match 做处理
-   handleStartTag 的核心逻辑很简单，先判断开始标签是否是一元标签，类似 <img>、<br/> 这样，接着对 match.attrs 遍历并做了一些处理，最后判断如果非一元标签，则往 stack 里 push 一个对象，并且把 tagName 赋值给 lastTag
+   handleStartTag 的核心逻辑很简单，先判断开始标签是否是一元标签，类似 <img>、<br/> 这样，
+   接着对 match.attrs 遍历并做了一些处理，
+   最后判断如果非一元标签，则往 stack 里 push 一个对象，并且把 tagName 赋值给 lastTag
    最后会执行 start 回调函数，函数主要就做 3 件事情，创建 AST 元素，处理 AST 元素，AST 树管理
 
   html为以下模板为例:

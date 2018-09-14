@@ -9185,7 +9185,6 @@ function parse (
         // element-scope stuff
         processElement(element, options);
       }
-
       function checkRootConstraints (el) {
         {
           if (el.tag === 'slot' || el.tag === 'template') {

@@ -9,8 +9,8 @@
 </head>
 <body>
 <div class="wraper m-container-max" id="others">
-<div class="card" v-if="show">
-	<div class="card-wrap" v-text="item.txt" v-for="(item,index) in list"></div>
+<div class="card" v-if="show" @click.stop="test111">
+	<div class="card-wrap" v-for="(item,index) in list">{{item.txt}}</div>
 </div>
 </div>
 </body>
@@ -28,6 +28,7 @@
 		},
 		methods: {
 			test111: function () {
+        alert(111);
 			},
 		}
 	});

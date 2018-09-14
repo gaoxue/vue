@@ -70,7 +70,6 @@ export function parse (
    *以下为平台相关配置:
    * options 实际上是和平台相关的一些配置，它的定义在 src/platforms/web/compiler/options 中
    * 那些属性和方法之所以放到 platforms 目录下是因为它们在不同的平台（web 和 weex）的实现是不同的
-   *
    */
   // start 用伪代码 getFnsAndConfigFromOptions()来表示这部分过程
   warn = options.warn || baseWarn
@@ -98,7 +97,10 @@ export function parse (
       warn(msg)
     }
   }
-
+  /*
+   closeElement 逻辑很简单，就是更新一下 inVPre 和 inPre 的状态，
+   以及执行 postTransforms 函数
+   */
   function closeElement (element) {
     // check pre state
     if (element.pre) {
@@ -119,8 +121,8 @@ export function parse (
    **/
   /** 以以下模板为例
    <div class="wraper m-container-max" id="others">
-     <div class="card" v-if="show">
-        <div class="card-wrap" v-text="item.txt" v-for="item in list"></div>
+     <div class="card" v-if="show" @click.stop="test111">
+        <div class="card-wrap" v-for="(item,index) in list">{{item.txt}}</div>
      </div>
    </div>
    */
@@ -139,8 +141,8 @@ parseHTML(template, {
       // check namespace.
       // inherit parent ns if there is one
       /* tag: div  unary:false(非一元标签) attrs:[{"name":"class","value":"wraper m-container-max"},{"name":"id","value":"others"}] */
-      /* tag: div  unary:false(非一元标签) attrs:[{"name":"class","value":"card"},{"name":"v-if","value":"show"}] */
-      /* tag: div  unary:false(非一元标签) attrs:[{"name":"class","value":"card-wrap"},{"name":"v-text","value":"item.txt"},{"name":"v-for","value":"item in list"}] */
+      /* tag: div  unary:false(非一元标签) attrs:[{"name":"class","value":"card"},{"name":"v-if","value":"show"},{"name":"@click.stop","value":"test111"}] */
+      /* tag: div  unary:false(非一元标签) attrs:[{"name":"class","value":"card-wrap"},{"name":"v-for","value":"(item,index) in list"}] */
 
       const ns = (currentParent && currentParent.ns) || platformGetTagNamespace(tag)
 
@@ -196,37 +198,12 @@ parseHTML(template, {
         processIf(element)
         processOnce(element)
         // element-scope stuff
+        // processRef  processComponent processSolt  processAttrs(指令和事件解析)
         processElement(element, options)
-        /*
-         <div class="wraper m-container-max" id="others">
-           <div class="card" v-if="show">
-              <div class="card-wrap" v-text="item.txt" v-for="item in list"></div>
-           </div>
-         </div>
-        console.log(element):
-        {
-         type: 1,
-         tag: "div",
-         attrsList: [{name: "v-text", value: "item.txt"}],
-         attrsMap: {class: "card-wrap", v-text: "item.txt", v-for: "(item,index) in list"},
-         directives: {name: "text", rawName: "v-text", value: "item.txt", arg: null, modifiers: undefined},
-         props: [{name: "textContent", value: "_s(item.txt)"}],
-         for: "list",
-         alias: "item",
-         iterator1: "index",
-         forProcessed: true,
-         hasBindings: true,
-         children: [],
-         parent: {type: 1, tag: "div", attrsList: [], attrsMap: {class: "card", v-if: "show"}, parent: Object, …},
-         plain: false,
-         static: false,
-         staticClass: "\"card-wrap\"",
-         staticRoot: false
-         }
-        */
       }
 
       function checkRootConstraints (el) {
+        // 限制组件根节点为单个节点
         if (process.env.NODE_ENV !== 'production') {
           if (el.tag === 'slot' || el.tag === 'template') {
             warnOnce(
@@ -261,10 +238,15 @@ parseHTML(template, {
        因此整个 AST 树管理要结合闭合标签的处理逻辑看。
        */
       if (!root) {
+        // 没根节点, 首个element作为根节点
         root = element
         checkRootConstraints(root)
       } else if (!stack.length) {
         // allow root elements with v-if, v-else-if and v-else
+        /*
+          <rootEle v-if="xxx">...</rootEle>
+          <rootEle v-else>...</rootEle>
+         */
         if (root.if && (element.elseif || element.else)) {
           checkRootConstraints(element)
           addIfCondition(root, {
@@ -292,14 +274,76 @@ parseHTML(template, {
         }
       }
       if (!unary) {
+        // 非一元标签,开始标签ast对象推入stack,更新currentParent,为继续前进遍历html做准备
         currentParent = element
         stack.push(element)
       } else {
+        // 一元标签,直接处理闭合
         closeElement(element)
       }
+      /*
+       <div class="wraper m-container-max" id="others">
+      {
+         type: 1,
+         tag: "div",
+         attrs: [{name: "id", value: "\"others\""}],
+         attrsList: [{name: "id", value: "others"}],
+         attrsMap: {class: "wraper m-container-max", id: "others"},
+         children: {type: 1, tag: "div", attrsList: [{name: "@click.once", value: "test111"}], attrsMap: {class: "card", v-if: "show", @click.stop: "test111"}, parent: Object, …},
+         parent: undefined,
+         plain: false,
+         static: false,
+         staticClass: "\"wraper m-container-max\"",
+         staticRoot: false
+       }
+
+       <div class="card" v-if="show" @click.stop="test111">
+       {
+         type: 1,
+         tag: "div",
+         attrsList: [{name: "@click.stop", value: "test111"}],
+         attrsMap: {class: "card", v-if: "show", @click.once: "test111"},
+         if: "show",
+         ifConditions: {exp: "show", block: Object},
+         ifProcessed: true,
+         events:  {click: {value: "test111", modifiers: {stop: true}}},
+         hasBindings: true,
+         parent: {type: 1, tag: "div", attrsList: [{name: "id", value: "others"}], attrsMap: {class: "wraper m-container-max", id: "others"}, parent: undefined, …}
+         children: {type: 1, tag: "div", attrsList: [], attrsMap: {class: "card-wrap", v-for: "(item,index) in list"},
+         plain: false,
+         static: false,
+         staticClass: "\"card\"",
+         staticRoot: false
+       }
+
+       <div class="card-wrap" v-for="(item,index) in list">{{item.txt}}</div>
+       console.log(element):
+       {
+       type: 1,
+       tag: "div",
+       attrsList: [],
+       attrsMap: {class: "card-wrap", v-for: "(item,index) in list"},
+       for: "list",
+       alias: "item",
+       iterator1: "index",
+       forProcessed: true,
+       children: {type: 2, expression: "_s(item.txt)", tokens: [{@binding: "item.txt"}], text: "{{item.txt}}", static: false},
+       parent: {type: 1, tag: "div", attrsList: [], attrsMap: {class: "card", v-if: "show"}, parent: Object, …},
+       plain: false,
+       static: false,
+       staticClass: "\"card-wrap\"",
+       staticRoot: false
+       }
+       */
     },
 
     end () {
+      /*
+       首先处理了尾部空格的情况，然后把 stack 的元素弹一个出栈，
+       并把 stack 最后一个元素赋值给 currentParent，
+       这样就保证了当遇到闭合标签的时候，可以正确地更新 stack 的长度以及 currentParent 的值，
+       这样就维护了整个 AST 树.最后执行了 closeElement(elment)处理闭合
+       */
       // remove trailing whitespace
       const element = stack[stack.length - 1]
       const lastNode = element.children[element.children.length - 1]
@@ -311,7 +355,18 @@ parseHTML(template, {
       currentParent = stack[stack.length - 1]
       closeElement(element)
     },
-
+    /*
+     对应伪代码：
+     chars (text: string) {
+       handleText()
+       createChildrenASTOfText()
+     }
+     文本构造的 AST 元素有 2 种类型:
+     一种是有表达式的，type 为 2，一种是纯文本，type 为 3。
+     在我们的例子中，文本就是 :，是个表达式
+     通过执行 parseText(text, delimiters) 对文本解析，
+     它的定义在 src/compiler/parser/text-parsre.js 中
+     */
     chars (text: string) {
       if (!currentParent) {
         if (process.env.NODE_ENV !== 'production') {
@@ -343,6 +398,28 @@ parseHTML(template, {
       if (text) {
         let res
         if (!inVPre && text !== ' ' && (res = parseText(text, delimiters))) {
+          /*
+           parseText 首先根据分隔符（默认是 {{}}）构造了文本匹配的正则表达式，
+           然后再循环匹配文本，遇到普通文本就 push 到 rawTokens 和 tokens 中，
+           如果是表达式就转换成 _s(${exp}) push 到 tokens 中，
+           以及转换成 {@binding:exp} push 到 rawTokens 中。
+           例如:
+           <div class="card-wrap" v-for="(item,index) in list">{{item.txt}}</div>
+
+           console.log(res)
+           {expression: "_s(item.txt)", tokens: [{@binding: "item.txt"}]}
+           console.log(text)
+           {{item.txt}}
+
+           转换后ast对象的children属性:
+           {
+             type: 1,
+             tag: "div",
+             ....
+             children: {type: 2, expression: "_s(item.txt)", tokens: [{@binding: "item.txt"}], text: "{{item.txt}}", static: false}
+             ...
+           }
+          */
           children.push({
             type: 2,
             expression: res.expression,
@@ -633,12 +710,34 @@ function processComponent (el) {
 }
 
 function processAttrs (el) {
+  /*
+   <div class="card" v-if="show" @click.stop="test111">
+   console.log(el);
+   {
+     type: 1,
+     tag: "div",
+     attrsList: [{name: "@click.stop", value: "test111"}],
+     attrsMap: {class: "card", v-if: "show", @click.once: "test111"},
+     if: "show",
+     ifConditions: {exp: "show", block: Object},
+     ifProcessed: true,
+     events:  {click: {value: "test111", modifiers: {stop: true}}},
+     hasBindings: true,
+     parent: {type: 1, tag: "div", attrsList: [{name: "id", value: "others"}], attrsMap: {class: "wraper m-container-max", id: "others"}, parent: undefined, …}
+     children: {type: 1, tag: "div", attrsList: [], attrsMap: {class: "card-wrap", v-for: "(item,index) in list"},
+     plain: false,
+     static: false,
+     staticClass: "\"card\"",
+     staticRoot: false
+   }
+   */
   const list = el.attrsList
   let i, l, name, rawName, value, modifiers, isProp
   for (i = 0, l = list.length; i < l; i++) {
     name = rawName = list[i].name
     value = list[i].value
     if (dirRE.test(name)) {
+      // dirRE: 所有 v-开头的  @开头的  :开头的
       // mark element as dynamic
       el.hasBindings = true
       // modifiers
@@ -675,7 +774,16 @@ function processAttrs (el) {
           addAttr(el, name, value)
         }
       } else if (onRE.test(name)) { // v-on
+        // console.log(name); @click
         name = name.replace(onRE, '')
+        /*
+         console.log(name);
+         click
+         console.log(value);
+         test111
+         console.log(modifiers);// modifiers: 修饰符
+         {stop: true}
+         */
         addHandler(el, name, value, modifiers, false, warn)
       } else { // normal directives
         name = name.replace(dirRE, '')
