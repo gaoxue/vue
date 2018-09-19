@@ -9,6 +9,7 @@
   ],
   "globals": {
     "__WEEX__": true,
+    "__WBOX__": true,
     "WXEnvironment": true
   }
 }
