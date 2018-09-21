@@ -72,6 +72,10 @@ function genHandler (
   const isMethodPath = simplePathRE.test(handler.value)
   const isFunctionExpression = fnExpRE.test(handler.value)
 
+  if (__WBOX__ && handler.value) {
+    handler.value = '__WBNativeEvent__' + handler.value + '__'
+  }
+
   if (!handler.modifiers) {
     return isMethodPath || isFunctionExpression
       ? handler.value

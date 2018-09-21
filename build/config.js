@@ -145,6 +145,7 @@ const builds = {
   },
   // Weex runtime factory
   'weex-factory': {
+    wbox: true,
     weex: true,
     entry: resolve('weex/entry-runtime-factory.js'),
     dest: resolve('packages/weex-vue-framework/factory.js'),
@@ -153,6 +154,7 @@ const builds = {
   },
   // Weex runtime framework (CommonJS).
   'weex-framework': {
+    wbox: true,
     weex: true,
     entry: resolve('weex/entry-framework.js'),
     dest: resolve('packages/weex-vue-framework/index.js'),
@@ -160,6 +162,7 @@ const builds = {
   },
   // Weex compiler (CommonJS). Used by Weex's Webpack loader.
   'weex-compiler': {
+    wbox: true,
     weex: true,
     entry: resolve('weex/entry-compiler.js'),
     dest: resolve('packages/weex-template-compiler/build.js'),
@@ -175,6 +178,7 @@ function genConfig (name) {
     external: opts.external,
     plugins: [
       replace({
+        __WBOX__: !!opts.wbox,
         __WEEX__: !!opts.weex,
         __WEEX_VERSION__: weexVersion,
         __VERSION__: version
